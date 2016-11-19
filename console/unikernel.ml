@@ -8,7 +8,7 @@ module Main (C: V1_LWT.CONSOLE) (Time: V1_LWT.TIME) = struct
       | n ->
         C.log c "hello" >>= fun () ->
         Time.sleep_ns (Duration.of_sec 1) >>= fun () ->
-        C.log c "world" >>= fun () ->
+        C.log c "worldz" >>= fun () ->
         loop (pred n)
     in
     loop 4
