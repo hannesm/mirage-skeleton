@@ -46,14 +46,14 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
          | None, _ | None, _ -> Lwt.return_unit
          | Some (ip, name), Some (dst, kname, key) ->
            (* TODO ensure that name is a good one *)
-           let zone = Dns_name.of_string_exn "home" in
+           let zone = Dns_name.of_string_exn "mirleft" in
            match Dns_name.prepend zone name with
            | Error (`Msg msg) ->
              Logs.warn (fun m -> m "couldn't create hostname %s.%a: %s" name Dns_name.pp zone msg) ;
              Lwt.return_unit
            | Ok name ->
              let original_id = 0xDEAD in
-             let home =
+             let a =
                let zone = { Dns_packet.q_name = zone ; q_type = Dns_enum.SOA }
                and update = [
                  Dns_packet.Remove (name, Dns_enum.A) ;
@@ -85,7 +85,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
                in
                { Dns_packet.zone ; prereq = [] ; update ; addition = [] }
              in
-             let a, _ = Dns_packet.encode `Udp (header, `Update home)
+             let a, _ = Dns_packet.encode `Udp (header, `Update a)
              and b, _ = Dns_packet.encode `Udp (header, `Update ptr)
              in
              let outa, outb =
