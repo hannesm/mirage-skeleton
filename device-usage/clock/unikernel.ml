@@ -7,27 +7,17 @@ module Main (Time: Mirage_types_lwt.TIME) (PClock: Mirage_types.PCLOCK) (MClock:
 
   module Logs_reporter = Mirage_logs.Make(PClock)
 
-  let str_of_time (posix_time, timezone) =
-    Format.asprintf "%a" (Ptime.pp_human ?tz_offset_s:timezone ()) posix_time
-
   let start _time pclock mclock =
-
     Logs.(set_level (Some Info));
     Logs_reporter.(create pclock |> run) @@ fun () ->
-
-    let rec speak pclock mclock () =
+    let rec speak pclock mclock old_ns () =
       let current_time = PClock.now_d_ps pclock |> Ptime.v in
-      let tz = PClock.current_tz_offset_s pclock in
-      let str =
-        Printf.sprintf
-          "%Lu nanoseconds have elapsed. \n\
-          \ At the stroke, the time will be %s \x07 *BEEP*"
-          (MClock.elapsed_ns mclock) @@ str_of_time (current_time, tz)
-      in
-      Log.info (fun f -> f "%s" str);
+      let ns = MClock.elapsed_ns mclock in
+      Log.info (fun f -> f "ptime %a %Lu ns elapsed since boot, %Lu ns since last output"
+                   (Ptime.pp_human ()) current_time ns (Int64.sub ns old_ns)) ;
       OS.Time.sleep_ns 1_000_000_000L >>= fun () ->
-      speak pclock mclock ()
+      speak pclock mclock ns ()
     in
-    speak pclock mclock ()
+    speak pclock mclock (MClock.elapsed_ns mclock) ()
 
 end
