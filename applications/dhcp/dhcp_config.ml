@@ -6,11 +6,13 @@ let net = Ipaddr.V4.Prefix.of_string_exn
 let mac = Macaddr.of_string_exn
 
 let hostname =           "dhcp"
+let domain =             "mirleft"
 let default_lease_time = 60 * 60 * 1 (* 1 hour *)
 let max_lease_time =     60 * 60 * 24 (* A day *)
 let ip_address =         ip "192.168.42.2"
 let network =            net "192.168.42.0/24"
 let range =              Some (ip "192.168.42.10", ip "192.168.42.100")
+
 (* List of dhcp options to be advertised *)
 let options = [
   (* Routers is a list of default routers *)
@@ -19,7 +21,7 @@ let options = [
   Dns_servers [ ip "192.168.42.3" ];
   (* Ntp_servers is a list of ntp servers, Time_servers (old protocol) is also available *)
   (* Ntp_servers [ip "192.168.1.5"]; *)
-  Domain_name "mirleft";
+  Domain_name domain;
   (*
    * Check dhcp_wire.mli for the other options:
    * https://github.com/haesbaert/charrua-core/blob/master/lib/dhcp_wire.mli
