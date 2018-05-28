@@ -20,6 +20,11 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
   let of_interest dest net =
     Macaddr.compare dest (N.mac net) = 0 || not (Macaddr.is_unicast dest)
 
+  let dns_header id = { Dns_packet.id ; query = true ; operation = Dns_enum.Update ;
+                        authoritative = false ; truncation = false ; recursion_desired = false ;
+                        recursion_available = false ; authentic_data = false ; checking_disabled = false ;
+                        rcode = Dns_enum.NoError }
+
   let input_dhcp console clock net u key pclock config leases buf =
     match Dhcp_wire.pkt_of_buf buf (Cstruct.len buf) with
     | Error e ->
@@ -46,7 +51,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
          | None, _ | None, _ -> Lwt.return_unit
          | Some (ip, name), Some (dst, kname, key) ->
            (* TODO ensure that name is a good one *)
-           let zone = Dns_name.of_string_exn "mirleft" in
+           let zone = Dns_name.of_string_exn Dhcp_config.domain in
            match Dns_name.prepend zone name with
            | Error (`Msg msg) ->
              Logs.warn (fun m -> m "couldn't create hostname %s.%a: %s" name Dns_name.pp zone msg) ;
@@ -61,10 +66,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
                ]
                in
                { Dns_packet.zone ; prereq = [] ; update ; addition = [] }
-             and header = { Dns_packet.id = original_id ; query = true ; operation = Dns_enum.Update ;
-                            authoritative = false ; truncation = false ; recursion_desired = false ;
-                            recursion_available = false ; authentic_data = false ; checking_disabled = false ;
-                            rcode = Dns_enum.NoError }
+             and header = dns_header original_id
              in
              let ptr =
                (* IP is 1.2.3.4 ; zone is 3.2.1.in-addr.arpa ; hostname 4.3.2.1.in-addr.arpa *)
@@ -85,27 +87,17 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
                in
                { Dns_packet.zone ; prereq = [] ; update ; addition = [] }
              in
-             let a, _ = Dns_packet.encode `Udp (header, `Update a)
-             and b, _ = Dns_packet.encode `Udp (header, `Update ptr)
-             in
-             let outa, outb =
-               match Dns_packet.dnskey_to_tsig_algo key with
-               | None -> (a, b)
-               | Some algorithm ->
-                 let signed = Ptime.v (PClock.now_d_ps pclock) in
-                 match Dns_packet.tsig ~algorithm ~original_id ~signed () with
-                 | None -> Logs.err (fun m -> m "creation of tsig failed") ; (a, b)
-                 | Some tsig ->
-                   match Dns_tsig.sign kname tsig ~key a, Dns_tsig.sign kname tsig ~key b with
-                   | None, _ | _, None -> Logs.err (fun m -> m "signing failed") ; (a, b)
-                   | Some (a, _), Some (b, _) -> (a, b)
-             in
-             U.write ~dst ~dst_port:53 u outa >>= function
-             | Error e -> Logs.warn (fun m -> m "failed to send nsupdate %a" U.pp_error e) ; Lwt.return_unit
-             | Ok () -> Lwt.return_unit >>= fun () ->
-               U.write ~dst ~dst_port:53 u outb >|= function
-               | Error e -> Logs.warn (fun m -> m "failed to send nsupdate %a" U.pp_error e)
-               | Ok () -> ()) >>= fun () ->
+             let now = Ptime.v (PClock.now_d_ps pclock) in
+             Lwt_list.iter_s (fun update ->
+                 match Dns_tsig.encode_and_sign ~proto:`Udp (header, `Update update) now key kname with
+                 | Error msg ->
+                   Logs.warn (fun m -> m "while encoding and signing nsupdate: %s" msg) ;
+                   Lwt.return_unit
+                 | Ok (data, _) ->
+                   U.write ~dst ~dst_port:53 u data >|= function
+                   | Error e -> Logs.warn (fun m -> m "failed to send nsupdate %a" U.pp_error e)
+                   | Ok () -> ())
+                 [a ; ptr]) >>= fun () ->
         Lwt.return leases
 
   let start c net pclock clock _time _random _nocrypto =
