@@ -51,10 +51,10 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
          | None, _ | None, _ -> Lwt.return_unit
          | Some (ip, name), Some (dst, kname, key) ->
            (* TODO ensure that name is a good one *)
-           let zone = Dns_name.of_string_exn Dhcp_config.domain in
-           match Dns_name.prepend zone name with
+           let zone = Domain_name.of_string_exn Dhcp_config.domain in
+           match Domain_name.prepend zone name with
            | Error (`Msg msg) ->
-             Logs.warn (fun m -> m "couldn't create hostname %s.%a: %s" name Dns_name.pp zone msg) ;
+             Logs.warn (fun m -> m "couldn't create hostname %s.%a: %s" name Domain_name.pp zone msg) ;
              Lwt.return_unit
            | Ok name ->
              let original_id = 0xDEAD in
@@ -72,13 +72,10 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
                (* IP is 1.2.3.4 ; zone is 3.2.1.in-addr.arpa ; hostname 4.3.2.1.in-addr.arpa *)
                let rev = List.rev (List.tl (List.rev (Ipaddr.V4.to_domain_name ip))) in
                Logs.debug (fun m -> m "domain name %a" Fmt.(list ~sep:(unit ".") string) rev) ;
-               let hname = Dns_name.of_strings_exn rev in
-               let zname =
-                 let arr = Dns_name.to_array hname in
-                 Dns_name.(of_array (Array.sub arr 0 (Array.length arr - 1)))
-               in
-               Logs.debug (fun m -> m "hname %a zname %a" Dns_name.pp hname
-                              Dns_name.pp zname) ;
+               let hname = Domain_name.of_strings_exn rev in
+               let zname = Domain_name.drop_labels_exn hname in
+               Logs.debug (fun m -> m "hname %a zname %a" Domain_name.pp hname
+                              Domain_name.pp zname) ;
                let zone = { Dns_packet.q_name = zname ; q_type = Dns_enum.SOA }
                and update = [
                  Dns_packet.Remove (hname, Dns_enum.PTR) ;
@@ -89,7 +86,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
              in
              let now = Ptime.v (PClock.now_d_ps pclock) in
              Lwt_list.iter_s (fun update ->
-                 match Dns_tsig.encode_and_sign ~proto:`Udp (header, `Update update) now key kname with
+                 match Dns_tsig.encode_and_sign ~proto:`Udp header (`Update update) now key kname with
                  | Error msg ->
                    Logs.warn (fun m -> m "while encoding and signing nsupdate: %s" msg) ;
                    Lwt.return_unit
@@ -107,7 +104,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
       | Some (ip, key) -> match Astring.String.cut ~sep:":" key with
         | None -> Logs.err (fun m -> m "couldn't parse name in %s" key) ; None
         | Some (name, key) ->
-          match Ipaddr.V4.of_string ip, Dns_name.of_string ~hostname:false name, Dns_packet.dnskey_of_string key with
+          match Ipaddr.V4.of_string ip, Domain_name.of_string ~hostname:false name, Dns_packet.dnskey_of_string key with
           | None, _, _ | _, Error _, _ | _, _, None -> Logs.err (fun m -> m "failed to parse key %s" key) ; None
           | Some ip, Ok name, Some dnskey -> Some (ip, name, dnskey)
     in
