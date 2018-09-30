@@ -9,7 +9,7 @@ let blue fmt   = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : Mirage_types.MCLOCK) (Time: TIME) (R: RANDOM) = struct
   module E = Ethernet.Make(N)
   module A = Arp.Make(E)(Time)
-  module I = Static_ipv4.Make(E)(A)
+  module I = Static_ipv4.Make(R)(MClock)(E)(A)
   module U = Udp.Make(I)(R)
   module DC = Dhcp_config
 
@@ -113,7 +113,7 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
     E.connect net >>= fun e ->
     A.connect e >>= fun a ->
     A.add_ip a DC.ip_address >>= fun () ->
-    I.connect ~ip:DC.ip_address ~network:DC.network e a >>= fun i ->
+    I.connect ~ip:DC.ip_address ~network:DC.network clock e a >>= fun i ->
     U.connect i >>= fun u ->
 
     (* Build a dhcp server *)
