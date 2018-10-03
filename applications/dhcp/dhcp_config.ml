@@ -6,12 +6,12 @@ let net = Ipaddr.V4.Prefix.of_string_exn
 let mac = Macaddr.of_string_exn
 
 let hostname =           "dhcp"
-let domain =             "mirleft"
+let domain =             "mirage"
 let default_lease_time = 60 * 60 * 1 (* 1 hour *)
 let max_lease_time =     60 * 60 * 24 (* A day *)
 let ip_address =         ip "192.168.42.2"
 let network =            net "192.168.42.0/24"
-let range =              Some (ip "192.168.42.10", ip "192.168.42.100")
+let range =              Some (ip "192.168.42.20", ip "192.168.42.100")
 
 (* List of dhcp options to be advertised *)
 let options = [
