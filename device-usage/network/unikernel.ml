@@ -1,10 +1,8 @@
 open Lwt.Infix
 
-let stored_stack_handler : Mirage_stack_lwt.V4.t option ref = ref None
+module Main (S: Mirage_stack_lwt.V4) = struct
 
-module MyNet = struct
-
-  module S = Mirage_stack_lwt.V4 (* from main.ml *)
+  let stored_stack_handler : S.t option ref = ref None
 
   let listen port =
     match !stored_stack_handler with
@@ -21,16 +19,11 @@ module MyNet = struct
             Logs.debug (fun f -> f "read: %d bytes:\n%s" (Cstruct.len b) (Cstruct.to_string b));
             S.TCPV4.close flow
         );
-
       S.listen k
 
-end
-
-module Main (S: Mirage_stack_lwt.V4) = struct
-
-  let start (s : Mirage_stack_lwt.V4.t) =
+  let start (s : S.t) =
     stored_stack_handler := Some s; (* save in global variable *)
     let port = Key_gen.port () in
-    MyNet.listen port
+    listen port
 
 end
