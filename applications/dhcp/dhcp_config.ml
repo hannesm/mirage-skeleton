@@ -18,7 +18,7 @@ let options = [
   (* Routers is a list of default routers *)
   Routers [ ip "192.168.42.1" ];
   (* Dns_servers is a list of dns servers *)
-  Dns_servers [ ip "192.168.42.3" ; ip "192.168.42.14" ];
+  Dns_servers [ ip "192.168.42.3" ];
   (* Ntp_servers is a list of ntp servers, Time_servers (old protocol) is also available *)
   (* Ntp_servers [ip "192.168.1.5"]; *)
   Domain_name domain;
