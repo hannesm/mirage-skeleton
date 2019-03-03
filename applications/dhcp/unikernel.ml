@@ -105,8 +105,8 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
         | None -> Logs.err (fun m -> m "couldn't parse name in %s" key) ; None
         | Some (name, key) ->
           match Ipaddr.V4.of_string ip, Domain_name.of_string ~hostname:false name, Dns_packet.dnskey_of_string key with
-          | None, _, _ | _, Error _, _ | _, _, None -> Logs.err (fun m -> m "failed to parse key %s" key) ; None
-          | Some ip, Ok name, Some dnskey -> Some (ip, name, dnskey)
+          | Error _, _, _ | _, Error _, _ | _, _, None -> Logs.err (fun m -> m "failed to parse key %s" key) ; None
+          | Ok ip, Ok name, Some dnskey -> Some (ip, name, dnskey)
     in
 
     (* Get an ARP stack *)
