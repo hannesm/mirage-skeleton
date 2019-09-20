@@ -24,6 +24,8 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
   module TCP = Tcp.Flow.Make(IP)(Time)(MClock)(R)
   module DC = Dhcp_config
 
+  module Monitor = Monitoring_experiments.M.Pull(Time)(MClock)(TCP)
+
   let log c s =
     Astring.String.cuts ~sep:"\n" s |>
     Lwt_list.iter_s (fun line -> C.log c line)
@@ -196,6 +198,12 @@ module Main (C: CONSOLE) (N: NETWORK) (PClock : Mirage_types.PCLOCK) (MClock : M
                 ~ipv6:(fun _ -> Lwt.return_unit)
                 eth buf
           ));
+
+    (let ip = Key_gen.monitor () in
+     TCP.create_connection tcp (ip, 8094) >|= function
+     | Error e -> Logs.warn (fun m -> m "couldn't connect to resolver %a" TCP.pp_error e)
+     | Ok flow -> Monitor.push ~hostname:"charrua.mirage" flow) >>= fun () ->
+
     (* if there's a DNS key, first ask the DNS server for AXFR of the reverse
        zone to fill in lease database from DHCID entries! *)
     begin match transfer_key with

@@ -8,7 +8,12 @@ let hmac_secret =
   let doc = Key.Arg.info ~doc:"hmac secret" ["hmac-secret"] in
   Key.(create "hmac-secret" Arg.(opt string "1234" doc))
 
-let main = foreign ~deps:[abstract nocrypto] ~keys:Key.([ abstract key ; abstract hmac_secret ])
+let monitor =
+  let doc = Key.Arg.info ~doc:"monitor host IP" ["monitor"] in
+  Key.(create "monitor" Arg.(opt ipv4_address Ipaddr.V4.localhost doc))
+
+let main = foreign ~deps:[abstract nocrypto]
+    ~keys:Key.([ abstract key ; abstract hmac_secret ; abstract monitor ])
     "Unikernel.Main"
     (console @-> network @-> pclock @-> mclock @-> time @-> random @-> job)
 
@@ -22,6 +27,7 @@ let () =
     package "dns";
     package "dns-tsig";
     package "macaddr-cstruct";
+    package "monitoring-experiments";
   ]
   in
   register "dhcp" ~packages [
