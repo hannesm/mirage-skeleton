@@ -16,17 +16,17 @@ let reserved_host_names =
     [ "router" ; "opam" ; "resolver" ; "pad" ])
     (Domain_name.Set.singleton hostname)
 
-let dns_server = ip "10.0.42.2"
+let dns_server = ip "192.168.42.2"
 
 let default_lease_time = 300 (* 60 * 60 * 1 (* 1 hour *) *)
 let max_lease_time =     600 (* * 60 * 24 (* A day *) *)
-let ip_address =         ip "10.0.42.3"
-let network =            net "10.0.42.0/24"
-let range =              Some (ip "10.0.42.10", ip "10.0.42.100")
+let ip_address =         ip "192.168.42.3"
+let network =            net "192.168.42.0/24"
+let range =              Some (ip "192.168.42.10", ip "192.168.42.100")
 (* List of dhcp options to be advertised *)
 let options = [
   (* Routers is a list of default routers *)
-  Routers [ ip "10.0.42.1" ];
+  Routers [ ip "192.168.42.1" ];
   (* Dns_servers is a list of dns servers *)
   Dns_servers [ dns_server ];
   (* Ntp_servers is a list of ntp servers, Time_servers (old protocol) is also available *)
