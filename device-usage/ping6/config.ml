@@ -11,7 +11,7 @@ let ipv6 =
     netmasks  = [];
     gateways  = [];
   } in
-  create_ipv6 ethif config
+  create_ipv6 net ethif config
 
 let () =
   register "ping" [ main $ default_console $ default_network $ ethif $ ipv6 ]
