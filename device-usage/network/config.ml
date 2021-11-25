@@ -4,21 +4,21 @@ let port =
   let doc = Key.Arg.info ~doc:"The TCP port on which to listen for incoming connections." ["port"] in
   Key.(create "port" Arg.(opt int 8080 doc))
 
-let tcp_direct_conf () = object
+let tcpv4_direct_conf () = object
   inherit base_configurable
   method ty = random @-> mclock @-> time @-> ipv4 @-> (tcp: 'a tcp typ)
   method name = "tcp"
-  method module_name = "Utcp_mirage.Make"
+  method module_name = "Utcp_mirage.Make_v4"
   method! connect _ modname = function
     | [_random; _mclock; _time; ip] -> Fmt.str "Lwt.return (%s.connect %s)" modname ip
-    | _ -> failwith "direct tcp"
+    | _ -> failwith "direct tcpv4"
 end
 
 let direct_tcp
     ?(clock=default_monotonic_clock)
     ?(random=default_random)
     ?(time=default_time) ip =
-  impl (tcp_direct_conf ()) $ random $ clock $ time $ ip
+  impl (tcpv4_direct_conf ()) $ random $ clock $ time $ ip
 
 let main =
   foreign ~keys:[Key.abstract port]
