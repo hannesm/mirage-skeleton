@@ -1,7 +1,7 @@
 (* mirage >= 4.9.0 & < 4.12.0 *)
 open Mirage
 
-let stack = generic_stackv4v6 default_network
+let stack = generic_stackv4v6 ~ipv4_network:(Ipaddr.V4.Prefix.of_string_exn "192.168.254.10/24") ~ipv4_gateway:(Ipaddr.V4.of_string_exn "192.168.254.1") default_network
 let data_key = Key.(value @@ kv_ro ~group:"data" ())
 let data = generic_kv_ro ~key:data_key "htdocs"
 
